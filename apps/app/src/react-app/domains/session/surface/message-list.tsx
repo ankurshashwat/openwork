@@ -460,6 +460,7 @@ function FileCard(props: {
   tone: "assistant" | "user";
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const isDataUrl = props.part.url?.startsWith("data:");
   const title = props.part.filename || (isDataUrl ? "Attached file" : props.part.url) || "File";
   const ext = props.part.filename?.split(".").pop()?.toLowerCase();
@@ -467,6 +468,47 @@ function FileCard(props: {
   const isImage = isImageAttachment(props.part.mediaType ?? "");
   const isDesktop = isDesktopRuntime();
   const hasPath = !isDataUrl && props.part.url && !props.part.url.startsWith("http");
+
+  // Generated images (data URL + image MIME from assistant) get a large preview
+  const isGeneratedImage = isImage && isDataUrl && props.tone === "assistant";
+
+  if (isGeneratedImage) {
+    return (
+      <div className="group relative max-w-lg">
+        <button
+          type="button"
+          className="block w-full overflow-hidden rounded-2xl border border-gray-6/40 bg-gray-1/40 transition-colors hover:border-gray-6/60"
+          onClick={() => setExpanded((v) => !v)}
+          title={expanded ? "Collapse image" : "Expand image"}
+        >
+          <img
+            src={props.part.url}
+            alt={title}
+            loading="lazy"
+            decoding="async"
+            className={`w-full object-contain transition-all ${expanded ? "max-h-[800px]" : "max-h-80"}`}
+          />
+        </button>
+        <div className="mt-2 flex items-center gap-2 px-1">
+          {badge ? (
+            <span className="inline-flex rounded-md bg-gray-3/50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-10">
+              {badge}
+            </span>
+          ) : null}
+          <span className="truncate text-[12px] text-gray-10">{title}</span>
+          <a
+            href={props.part.url}
+            download={props.part.filename || `generated.${ext || "png"}`}
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg text-gray-9 opacity-0 transition-all hover:bg-gray-3/60 hover:text-gray-12 group-hover:opacity-100"
+            title="Download image"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

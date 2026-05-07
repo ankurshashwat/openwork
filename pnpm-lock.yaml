@@ -743,6 +743,15 @@ importers:
         specifier: ^5.5.4
         version: 5.9.3
 
+  packages/image-gen-mcp:
+    dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.29.0
+        version: 1.29.0(zod@3.25.76)
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+
   packages/openwork-server-sdk:
     dependencies:
       '@hey-api/client-fetch':

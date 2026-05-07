@@ -382,7 +382,28 @@ function applyEvent(entry: SyncEntry, workspaceId: string, event: OpencodeEvent)
       const existing = current.find((m) => m.id === part.messageID);
       const role = existing?.role ?? inferStubRole(current);
       const withMessage = upsertMessage(current, { id: part.messageID, role, parts: [] });
-      return upsertPart(withMessage, part.messageID, part.id, seededPart);
+      let result = upsertPart(withMessage, part.messageID, part.id, seededPart);
+      // Emit tool attachments (e.g. MCP image content) as file parts
+      if (part.type === "tool") {
+        const record = part as Part & { state?: Record<string, unknown> };
+        const attachments = (record.state as Record<string, unknown> | undefined)?.attachments;
+        if (Array.isArray(attachments)) {
+          for (const att of attachments) {
+            const a = att as { id?: string; url?: string; mime?: string; filename?: string };
+            if (a.url && a.mime) {
+              const filePart: UIMessage["parts"][number] = {
+                type: "file",
+                url: a.url,
+                filename: a.filename,
+                mediaType: a.mime,
+                providerMetadata: { opencode: { partId: a.id ?? part.id } },
+              };
+              result = upsertPart(result, part.messageID, a.id ?? `${part.id}-att`, filePart);
+            }
+          }
+        }
+      }
+      return result;
     });
     if (pending) entry.pendingDeltas.delete(part.id);
     return;

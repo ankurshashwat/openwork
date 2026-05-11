@@ -40,6 +40,8 @@ import {
   workspaceCreate,
   workspaceCreateRemote,
   workspaceExportConfig,
+  orchestratorStartDetached,
+  sandboxDoctor,
   workspaceForget,
   workspaceSetRuntimeActive,
   workspaceSetSelected,
@@ -482,6 +484,9 @@ export function SessionRoute() {
   const [createWorkspaceError, setCreateWorkspaceError] = useState<string | null>(null);
   const [createWorkspaceRemoteBusy, setCreateWorkspaceRemoteBusy] = useState(false);
   const [createWorkspaceRemoteError, setCreateWorkspaceRemoteError] = useState<string | null>(null);
+  const [sandboxBusy, setSandboxBusy] = useState(false);
+  const [sandboxDisabled, setSandboxDisabled] = useState(false);
+  const [sandboxDisabledReason, setSandboxDisabledReason] = useState<string | null>(null);
   const [renameWorkspaceId, setRenameWorkspaceId] = useState<string | null>(null);
   const [renameWorkspaceTitle, setRenameWorkspaceTitle] = useState("");
   const [renameWorkspaceBusy, setRenameWorkspaceBusy] = useState(false);
@@ -2467,11 +2472,74 @@ export function SessionRoute() {
       }}
       onConfirm={handleCreateWorkspace}
       onConfirmRemote={handleCreateRemoteWorkspace}
+      onConfirmWorker={async (_preset, folder) => {
+        if (!folder) return;
+        setSandboxBusy(true);
+        setCreateWorkspaceError(null);
+        try {
+          const doctor = await sandboxDoctor();
+          if (!doctor.ready) {
+            setSandboxDisabled(true);
+            setSandboxDisabledReason(
+              doctor.installed
+                ? "Docker daemon is not running. Start Docker Desktop and try again."
+                : "Docker is not installed. Install Docker Desktop to use sandboxed workspaces.",
+            );
+            setSandboxBusy(false);
+            return;
+          }
+          const result = await orchestratorStartDetached({
+            workspacePath: folder,
+            sandboxBackend: "microsandbox",
+          });
+          if (!result?.openworkUrl) {
+            throw new Error("Sandbox started but no server URL was returned.");
+          }
+          const list = await workspaceCreateRemote({
+            baseUrl: result.openworkUrl,
+            openworkHostUrl: result.openworkUrl,
+            openworkToken: result.token || null,
+            displayName: folder.split("/").filter(Boolean).pop() || "Sandbox",
+            directory: folder,
+            remoteType: "openwork",
+            sandboxBackend: "microsandbox",
+            sandboxRunId: result.sandboxRunId || null,
+            sandboxContainerName: result.sandboxContainerName || null,
+          });
+          const createdId =
+            resolveWorkspaceListSelectedId(list) ||
+            list.workspaces[list.workspaces.length - 1]?.id ||
+            "";
+          if (createdId) {
+            await workspaceSetSelected(createdId).catch(() => undefined);
+            await workspaceSetRuntimeActive(createdId).catch(() => undefined);
+            writeActiveWorkspaceId(createdId);
+          }
+          setCreateWorkspaceOpen(false);
+          navigateToWorkspaceSession(createdId || selectedWorkspaceId);
+          void refreshRouteState();
+        } catch (error) {
+          setCreateWorkspaceError(
+            error instanceof Error ? error.message : "Failed to create sandbox workspace.",
+          );
+        } finally {
+          setSandboxBusy(false);
+        }
+      }}
       onPickFolder={() => pickDirectory({ title: t("onboarding.authorize_folder") }) as Promise<string | null>}
       submitting={createWorkspaceBusy}
       localError={createWorkspaceError}
       remoteSubmitting={createWorkspaceRemoteBusy}
       remoteError={createWorkspaceRemoteError}
+      workerSubmitting={sandboxBusy}
+      workerDisabled={sandboxDisabled}
+      workerDisabledReason={sandboxDisabledReason}
+      workerLabel="Create as sandbox"
+      onWorkerRetry={() => {
+        setSandboxDisabled(false);
+        setSandboxDisabledReason(null);
+      }}
+      workerRetryLabel="Retry"
     />
     <CreateRemoteWorkspaceModal
       open={remoteWorkspaceConnectionEditor.workspace !== null}

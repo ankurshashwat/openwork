@@ -7,6 +7,7 @@ import type { CloudImportedPlugin, CloudImportedPluginFile } from "../../../../.
 import type { ComposerAttachment, McpServerEntry, McpStatusMap, ModelRef, SkillCard, SlashCommandOption } from "../../../../../app/types";
 import { t } from "../../../../../i18n";
 import { ModelBehaviorSelect } from "../../../../../components/model-behavior-select";
+import { useEffectiveConfig } from "../../../../shell/effective-config";
 import { ModelSelect } from "../../../../../components/model-select";
 import { LexicalPromptEditor } from "./editor";
 import {
@@ -244,6 +245,7 @@ function pluginSlashCommandName(file: CloudImportedPluginFile) {
 }
 
 export function ReactSessionComposer(props: ComposerProps) {
+  const effectiveConfig = useEffectiveConfig();
   let fileInput: HTMLInputElement | undefined;
   const [agents, setAgents] = useState<Agent[]>([]);
   const [agentMenuOpen, setAgentMenuOpen] = useState(false);
@@ -1393,13 +1395,15 @@ export function ReactSessionComposer(props: ComposerProps) {
             </div>
             */}
 
-            <ModelSelect
-              open={props.modelPickerOpen}
-              value={props.selectedModel}
-              onOpenChange={props.onModelPickerOpenChange}
-              onChange={props.onModelChange}
-              disabled={props.busy}
-            />
+            {effectiveConfig.modelPicker ? (
+              <ModelSelect
+                open={props.modelPickerOpen}
+                value={props.selectedModel}
+                onOpenChange={props.onModelPickerOpenChange}
+                onChange={props.onModelChange}
+                disabled={props.busy}
+              />
+            ) : null}
 
             <ModelBehaviorSelect
               value={props.modelVariant}

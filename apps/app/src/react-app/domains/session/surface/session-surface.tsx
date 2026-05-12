@@ -30,7 +30,7 @@ import { ReactSessionComposer } from "./composer/composer";
 import { DevProfiler } from "../../../shell/dev-profiler";
 import { PaperGrainGradient } from "@openwork/ui/react";
 import { OwDotTicker } from "../../../shell/dot-ticker";
-import { useShellConfig } from "../../../shell/shell-config";
+import { useEffectiveConfig } from "../../../shell/effective-config";
 import { useReactRenderWatchdog } from "../../../shell/react-render-watchdog";
 import type { ReactComposerNotice } from "./composer/notice";
 import { SessionDebugPanel } from "./debug-panel";
@@ -270,7 +270,7 @@ function revokeAttachmentPreview(attachment: { previewUrl?: string | undefined }
 
 export function SessionSurface(props: SessionSurfaceProps) {
   const local = useLocal();
-  const { config: shellConfig } = useShellConfig();
+  const effectiveConfig = useEffectiveConfig();
   const showThinking = local.prefs.showThinking;
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
@@ -904,7 +904,7 @@ export function SessionSurface(props: SessionSurfaceProps) {
                   onChangeModel={props.onChangeModel}
                   onOpenModelPicker={props.onModelClick}
                 />
-              ) : shellConfig.starterCards ? (
+              ) : effectiveConfig.starterCards ? (
                 <div className="flex flex-1 flex-col items-center justify-end px-6 pb-4">
                   <div className="w-full max-w-[640px]">
                     <p className="mb-3 text-xs text-dls-secondary">Try one of these:</p>

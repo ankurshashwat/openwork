@@ -40,7 +40,7 @@ import { ShareWorkspaceModal } from "../../workspace/share-workspace-modal";
 import { StatusBar, type StatusBarProps } from "./status-bar";
 import { OwDotTicker } from "../../../shell/dot-ticker";
 import { useReactRenderWatchdog } from "../../../shell/react-render-watchdog";
-import { useShellConfig } from "../../../shell/shell-config";
+import { useEffectiveConfig } from "../../../shell/effective-config";
 
 import { isElectronRuntime } from "../../../../app/utils";
 import { BrowserPanel } from "../browser/browser-panel";
@@ -181,7 +181,7 @@ function sessionTitleForId(groups: WorkspaceSessionGroup[], id: string | null | 
 }
 
 export function SessionPage(props: SessionPageProps) {
-  const { config: shellConfig } = useShellConfig();
+  const effectiveConfig = useEffectiveConfig();
 
   useReactRenderWatchdog("SessionPage", {
     selectedSessionId: props.selectedSessionId,
@@ -365,12 +365,11 @@ export function SessionPage(props: SessionPageProps) {
   return (
     <div className="flex h-full min-h-0 flex-col bg-[radial-gradient(circle_at_top,rgba(74,111,255,0.12),transparent_42%),var(--app-bg,#0b1020)] text-dls-text mac:bg-transparent">
       <SidebarProvider
-        defaultOpen={shellConfig.sidebar}
+        defaultOpen={true}
         className={cn(
           "relative min-h-0 flex-1 mac:bg-transparent",
           leftSidebarResizing &&
             "**:data-[slot=sidebar-container]:transition-none **:data-[slot=sidebar-gap]:transition-none",
-          !shellConfig.sidebar && "**:data-[slot=sidebar-container]:hidden **:data-[slot=sidebar-gap]:hidden",
         )}
         style={sidebarProviderStyle}
       >
@@ -415,7 +414,7 @@ export function SessionPage(props: SessionPageProps) {
               <main className="flex h-full min-w-0 flex-col overflow-hidden border-r border-border">
           <header className="z-10 flex h-10 shrink-0 items-center justify-between border-b border-border px-4 md:px-6 mac:titlebar-drag  mac:backdrop-blur-2xl mac:backdrop-saturate-150 @container/titlebar">
             <div className="flex min-w-0 items-center gap-3">
-              {shellConfig.sidebar ? <SidebarTrigger className="mac:hidden" /> : null}
+              <SidebarTrigger className="mac:hidden" />
               <h1 className="truncate text-[15px] font-semibold text-dls-text">
                 {showWorkspaceSetupEmptyState
                   ? t("session.create_or_connect_workspace")
@@ -706,7 +705,7 @@ export function SessionPage(props: SessionPageProps) {
             </div>
           ) : null}
 
-          {shellConfig.statusBar ? (
+          {effectiveConfig.statusBar ? (
             <StatusBar
               clientConnected={props.clientConnected}
               openworkServerStatus={props.openworkServerStatus}
@@ -742,7 +741,7 @@ export function SessionPage(props: SessionPageProps) {
             ) : null}
           </ResizablePanelGroup>
         </SidebarInset>
-        {shellConfig.sidebar ? <SidebarTrigger className="hidden mac:absolute mac:left-[64px] top-[3px] z-50 mac:flex titlebar-no-drag" /> : null}
+        <SidebarTrigger className="hidden mac:absolute mac:left-[64px] top-[3px] z-50 mac:flex titlebar-no-drag" />
       </SidebarProvider>
 
       {props.providerAuthModal ? <ProviderAuthModal {...props.providerAuthModal} /> : null}
